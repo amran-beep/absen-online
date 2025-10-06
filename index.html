@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Server - Sistem Absen Karyawan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .admin-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .server-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
+        .admin-offline {
+            background: rgba(239, 68, 68, 0.9);
+        }
+        .fixed-exit-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .fixed-exit-button:hover {
+            background: rgba(220, 38, 38, 0.95);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .fixed-credit {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(59, 130, 246, 0.95);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Admin Status Indicator -->
+    <!-- Fixed Exit Button -->
+    <button onclick="logoutAndClose()" class="fixed-exit-button">
+        <span>🚪</span>
+        <span>Keluar</span>
+    </button>
+
+    <!-- Fixed Credit -->
+    <div class="fixed-credit">
+        👨‍💻 Created by AMRAN
+    </div>
+
+    <div id="adminStatusIndicator" class="server-status hidden">
+        👨‍💼 ADMIN OFFLINE
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8 relative">
+            
+            <!-- Company Logo -->
+            <div id="companyLogo" class="mb-4 hidden">
+                <img id="logoImage" src="" alt="Company Logo" class="mx-auto h-16 w-auto">
+            </div>
+            
+            <h1 id="companyTitle" class="text-4xl font-bold text-gray-800 mb-2">📋 Sistem Absen Karyawan</h1>
+            <h2 id="companyName" class="text-2xl font-semibold mb-2" style="color: var(--primary-color, #3B82F6);">PT. CONTOH PERUSAHAAN</h2>
+            <p id="companyAddress" class="text-gray-600 text-sm">Jl. Contoh No. 123, Jakarta</p>
+            <p class="text-gray-600">Kelola kehadiran karyawan dengan mudah</p>
+        </div>
+
+        <!-- Main Navigation -->
+        <div class="max-w-4xl mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Pilih Mode Akses</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Employee Access Card -->
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6 text-center hover:shadow-lg transition duration-300">
+                        <div class="text-4xl mb-4">👥</div>
+                        <h3 class="text-xl font-semibold text-green-800 mb-3">Absen Karyawan</h3>
+                        <p class="text-green-700 text-sm mb-4">Untuk karyawan melakukan absen masuk dan pulang</p>
+                        <button onclick="showEmployeeForm()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                            📝 Buka Form Absen
+                        </button>
+                    </div>
+
+                    <!-- Admin Access Card -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 text-center hover:shadow-lg transition duration-300">
+                        <div class="text-4xl mb-4">👨‍💼</div>
+                        <h3 class="text-xl font-semibold text-blue-800 mb-3">Dashboard Admin</h3>
+                        <p class="text-blue-700 text-sm mb-4">Untuk admin mengelola data absensi, laporan, dan pengaturan sistem</p>
+                        <button onclick="showAdminLogin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                            🔑 Login Admin
+                        </button>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <!-- Employee Attendance Form -->
+        <div id="employeeSection" class="max-w-md mx-auto mb-8 hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-green-200">
+                <div class="mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800 text-center">👥 Form Absen Karyawan</h2>
+                </div>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-sm text-green-800">
+                    <strong>📋 Petunjuk:</strong> Isi data lengkap (nama, divisi, shift) untuk melakukan absen masuk/pulang.
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Karyawan</label>
+                    <select id="employeeName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Pilih Nama Karyawan</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Divisi</label>
+                    <select id="employeeDivision" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Pilih Divisi</option>
+                        <option value="Staff Kantor">Staff Kantor</option>
+                        <option value="Parkir">Parkir</option>
+                        <option value="Kantin">Kantin</option>
+                        <option value="Kebersihan">Kebersihan</option>
+                        <option value="BDLink & Penginapan">BDLink & Penginapan</option>
+                        <option value="BD Link">BD Link</option>
+                    </select>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Shift Kerja</label>
+                    <select id="employeeShift" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Pilih Shift</option>
+                        <option value="kantor">Shift Kantor (08:00 - 16:00)</option>
+                        <option value="kantin_siang">Kantin Siang (09:00 - 16:00)</option>
+                        <option value="kantin_sore">Kantin Sore (16:00 - 23:59)</option>
+                        <option value="kantin_malam">Kantin Malam (23:45 - 09:00)</option>
+                        <option value="parkir">Parkir (23:45 - 09:00)</option>
+                        <option value="bdlink_penginapan">BDLink & Penginapan (23:00 - 09:00)</option>
+                    </select>
+                </div>
+
+
+
+                <div class="flex gap-3">
+                    <button onclick="clockIn()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                        🕐 Masuk
+                    </button>
+                    <button onclick="clockOut()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                        🕐 Pulang
+                    </button>
+                </div>
+
+                <div id="statusMessage" class="mt-4 p-3 rounded-lg text-center hidden"></div>
+            </div>
+        </div>
+
+        <!-- Admin Login Section -->
+        <div id="adminSection" class="max-w-md mx-auto mb-8 hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">👨‍💼 Login Admin</h2>
+                    <button onclick="backToMain()" class="text-gray-500 hover:text-gray-700 text-sm">
+                        ← Kembali
+                    </button>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
+                    <strong>🔐 Mode Admin:</strong> Akses dashboard admin untuk mengelola data absensi, laporan, dan pengaturan sistem.
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password Admin</label>
+                    <input type="password" id="adminPassword" placeholder="Masukkan password admin" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <button onclick="loginAdmin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                    🔑 Login Admin
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="max-w-6xl mx-auto hidden">
+            <!-- Admin Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">👨‍💼 DASHBOARD ADMIN</h1>
+                        <p class="text-blue-100">Panel kontrol untuk mengelola sistem absensi</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="flex items-center mb-2">
+                            <div class="w-3 h-3 bg-green-400 rounded-full mr-2 admin-indicator"></div>
+                            <span class="font-semibold">ADMIN AKTIF</span>
+                        </div>
+                        <div class="text-sm text-blue-100" id="adminLoginTime">Login: -</div>
+                        <button onclick="logoutAdmin()" class="mt-2 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm transition duration-200">
+                            🚪 Logout Admin
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Statistics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow text-center border-l-4 border-green-500">
+                    <div class="text-2xl font-bold text-green-600" id="totalRecords">0</div>
+                    <div class="text-sm text-gray-600">Total Absensi</div>
+                    <div class="text-xs text-green-600 mt-1">Semua Data</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center border-l-4 border-blue-500">
+                    <div class="text-2xl font-bold text-blue-600" id="todayAttendance">0</div>
+                    <div class="text-sm text-gray-600">Absen Hari Ini</div>
+                    <div class="text-xs text-blue-600 mt-1">Hari Ini</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center border-l-4 border-yellow-500">
+                    <div class="text-2xl font-bold text-yellow-600" id="totalEmployees">0</div>
+                    <div class="text-sm text-gray-600">Total Karyawan</div>
+                    <div class="text-xs text-yellow-600 mt-1">Aktif</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow text-center border-l-4 border-purple-500">
+                    <div class="text-2xl font-bold text-purple-600" id="adminVersion">v1.5</div>
+                    <div class="text-sm text-gray-600">Versi Sistem</div>
+                    <div class="text-xs text-purple-600 mt-1" id="lastUpdate">Update: -</div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-xl shadow-lg mb-6">
+                <div class="border-b border-gray-200">
+                    <nav class="flex flex-wrap space-x-4 px-6">
+                        <button onclick="switchTab('dashboard')" id="dashboardTab" class="py-4 px-2 border-b-2 border-blue-500 font-medium text-sm text-blue-600 whitespace-nowrap">
+                            📊 Dashboard
+                        </button>
+                        <button onclick="switchTab('attendance')" id="attendanceTab" class="py-4 px-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                            📋 Data Absensi
+                        </button>
+                        <button onclick="switchTab('employees')" id="employeesTab" class="py-4 px-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                            👥 Kelola Karyawan
+                        </button>
+                        <button onclick="switchTab('divisions')" id="divisionsTab" class="py-4 px-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                            🏢 Kelola Divisi
+                        </button>
+                        <button onclick="switchTab('shifts')" id="shiftsTab" class="py-4 px-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                            ⏰ Kelola Shift
+                        </button>
+                        <button onclick="switchTab('reports')" id="reportsTab" class="py-4 px-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                            📈 Laporan
+                        </button>
+                        <button onclick="switchTab('settings')" id="settingsTab" class="py-4 px-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap">
+                            ⚙️ Pengaturan
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboardContent" class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 Dashboard Admin</h3>
+                    
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-green-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-green-600" id="todayPresent">0</div>
+                            <div class="text-sm text-green-800">Hadir Hari Ini</div>
+                            <div class="text-xs text-gray-600 mt-1">Karyawan</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="todayLate">0</div>
+                            <div class="text-sm text-blue-800">Terlambat</div>
+                            <div class="text-xs text-gray-600 mt-1">Hari Ini</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-purple-600" id="todayAbsent">0</div>
+                            <div class="text-sm text-purple-800">Belum Absen</div>
+                            <div class="text-xs text-gray-600 mt-1">Karyawan</div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Controls -->
+                    <div class="bg-white border rounded-lg mb-6">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">🎛️ Kontrol Admin</h4>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <button onclick="refreshData()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                                    🔄 Refresh Data
+                                </button>
+                                <button onclick="createBackup()" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                                    💾 Backup Data
+                                </button>
+                                <button onclick="clearOldData()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                                    🗑️ Bersihkan Data Lama
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Log -->
+                    <div class="bg-white border rounded-lg">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">📋 Log Aktivitas</h4>
+                        </div>
+                        <div class="p-4">
+                            <div id="activityLogs" class="space-y-1 max-h-64 overflow-y-auto bg-gray-50 p-4 rounded text-sm">
+                                <div class="text-gray-600">[INFO] Dashboard admin dimuat</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Tab -->
+                <div id="attendanceContent" class="p-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">📋 Data Absensi</h3>
+                    <div class="overflow-x-auto max-h-96 border rounded-lg">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Tanggal</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Nama</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Divisi</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Shift</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Masuk</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Pulang</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-700">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Divisions Tab -->
+                <div id="divisionsContent" class="p-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">🏢 Kelola Divisi</h3>
+                    
+                    <!-- Add Division Form -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 mb-3">Tambah Divisi Baru</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="newDivisionName" placeholder="Nama Divisi" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <input type="text" id="newDivisionDescription" placeholder="Deskripsi Divisi" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <button onclick="addDivision()" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                                ➕ Tambah Divisi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Division List -->
+                    <div class="bg-white border rounded-lg">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">Daftar Divisi</h4>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Nama Divisi</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Deskripsi</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Jumlah Karyawan</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="divisionListBody">
+                                    <!-- Division list will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shifts Tab -->
+                <div id="shiftsContent" class="p-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">⏰ Kelola Shift</h3>
+                    
+                    <!-- Add Shift Form -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 mb-3">Tambah Shift Baru</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <input type="text" id="newShiftName" placeholder="Nama Shift" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <input type="time" id="newShiftStart" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <input type="time" id="newShiftEnd" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <input type="text" id="newShiftDescription" placeholder="Deskripsi" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <button onclick="addShift()" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                                ➕ Tambah Shift
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Shift List -->
+                    <div class="bg-white border rounded-lg">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">Daftar Shift Kerja</h4>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Nama Shift</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Jam Mulai</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Jam Selesai</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Durasi</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Deskripsi</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shiftListBody">
+                                    <!-- Shift list will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employees Tab -->
+                <div id="employeesContent" class="p-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">👥 Kelola Karyawan</h3>
+                    
+                    <!-- Add Employee Form -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 mb-3">Tambah Karyawan Baru</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input type="text" id="newEmployeeName" placeholder="Nama Lengkap Karyawan" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <select id="newEmployeeDivision" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Pilih Divisi</option>
+                                <option value="Staff Kantor">Staff Kantor</option>
+                                <option value="Parkir">Parkir</option>
+                                <option value="Kantin">Kantin</option>
+                                <option value="Kebersihan">Kebersihan</option>
+                                <option value="BDLink & Penginapan">BDLink & Penginapan</option>
+                                <option value="BD Link">BD Link</option>
+                            </select>
+                            <input type="text" id="newEmployeePosition" placeholder="Posisi/Jabatan" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <input type="date" id="newEmployeeJoinDate" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <button onclick="addEmployee()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                            ➕ Tambah Karyawan Baru
+                        </button>
+                    </div>
+
+                    <!-- Employee List -->
+                    <div class="bg-white border rounded-lg">
+                        <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                            <h4 class="font-semibold text-gray-800">Daftar Karyawan</h4>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm text-gray-600">Filter:</label>
+                                <select id="employeeStatusFilter" onchange="filterEmployeeList()" class="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">Semua Status</option>
+                                    <option value="Aktif">Hanya Aktif</option>
+                                    <option value="Nonaktif">Hanya Nonaktif</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Nama</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Divisi</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Posisi</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Tanggal Masuk</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                                        <th class="px-4 py-2 text-left font-medium text-gray-700">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeeListBody">
+                                    <!-- Employee list will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Tab -->
+                <div id="reportsContent" class="p-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">📈 Laporan Absensi</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="exportAdminReport()" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-6 rounded-lg transition duration-200">
+                            📥 Export Laporan
+                        </button>
+                        <button onclick="shareAdminData()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg transition duration-200">
+                            📱 Share Data
+                        </button>
+                        <button onclick="printReport()" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-4 px-6 rounded-lg transition duration-200">
+                            🖨️ Print Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settingsContent" class="p-6 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-6">⚙️ Pengaturan Sistem</h3>
+                    
+                    <!-- Company Information -->
+                    <div class="bg-white border rounded-lg mb-6">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">🏢 Informasi Perusahaan</h4>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Perusahaan</label>
+                                    <input type="text" id="companyNameInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Perusahaan</label>
+                                    <input type="text" id="companyAddressInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
+                                    <input type="text" id="companyPhoneInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                    <input type="email" id="companyEmailInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                                    <input type="text" id="companyWebsiteInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Direktur</label>
+                                    <input type="text" id="directorNameInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama HRD</label>
+                                    <input type="text" id="hrdNameInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logo & Signatures -->
+                    <div class="bg-white border rounded-lg mb-6">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">🖼️ Logo & Tanda Tangan</h4>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Company Logo -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Logo Perusahaan</label>
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                        <img id="logoPreview" src="" alt="Logo Preview" class="mx-auto h-20 w-auto mb-2 hidden">
+                                        <div id="logoPlaceholder" class="text-gray-500 mb-2">
+                                            <div class="text-2xl">🏢</div>
+                                            <div class="text-sm">Upload Logo</div>
+                                        </div>
+                                        <input type="file" id="logoUpload" accept="image/*" class="hidden" onchange="handleImageUpload(this, 'logo')">
+                                        <button onclick="document.getElementById('logoUpload').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                            📁 Pilih File
+                                        </button>
+                                        <button onclick="clearImage('logo')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-2">
+                                            🗑️ Hapus
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Director Signature -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan Direktur</label>
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                        <img id="directorSignaturePreview" src="" alt="Director Signature" class="mx-auto h-20 w-auto mb-2 hidden">
+                                        <div id="directorSignaturePlaceholder" class="text-gray-500 mb-2">
+                                            <div class="text-2xl">✍️</div>
+                                            <div class="text-sm">TTD Direktur</div>
+                                        </div>
+                                        <input type="file" id="directorSignatureUpload" accept="image/*" class="hidden" onchange="handleImageUpload(this, 'directorSignature')">
+                                        <button onclick="document.getElementById('directorSignatureUpload').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                            📁 Pilih File
+                                        </button>
+                                        <button onclick="clearImage('directorSignature')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-2">
+                                            🗑️ Hapus
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- HRD Signature -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan HRD</label>
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                        <img id="hrdSignaturePreview" src="" alt="HRD Signature" class="mx-auto h-20 w-auto mb-2 hidden">
+                                        <div id="hrdSignaturePlaceholder" class="text-gray-500 mb-2">
+                                            <div class="text-2xl">✍️</div>
+                                            <div class="text-sm">TTD HRD</div>
+                                        </div>
+                                        <input type="file" id="hrdSignatureUpload" accept="image/*" class="hidden" onchange="handleImageUpload(this, 'hrdSignature')">
+                                        <button onclick="document.getElementById('hrdSignatureUpload').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                            📁 Pilih File
+                                        </button>
+                                        <button onclick="clearImage('hrdSignature')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm ml-2">
+                                            🗑️ Hapus
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Template & Design -->
+                    <div class="bg-white border rounded-lg mb-6">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">🎨 Template & Desain</h4>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Template Layout</label>
+                                    <select id="templateSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="previewTemplate()">
+                                        <option value="modern">Modern</option>
+                                        <option value="classic">Classic</option>
+                                        <option value="minimal">Minimal</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Warna Utama</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="color" id="primaryColorInput" class="w-12 h-10 border border-gray-300 rounded cursor-pointer">
+                                        <input type="text" id="primaryColorText" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="#3B82F6">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Warna Sekunder</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="color" id="secondaryColorInput" class="w-12 h-10 border border-gray-300 rounded cursor-pointer">
+                                        <input type="text" id="secondaryColorText" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="#10B981">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Template Preview -->
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Preview Template</label>
+                                <div id="templatePreview" class="border rounded-lg p-4 bg-gray-50 min-h-32">
+                                    <div class="text-center text-gray-500">Preview akan muncul di sini</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Configuration -->
+                    <div class="bg-white border rounded-lg mb-6">
+                        <div class="p-4 border-b bg-gray-50">
+                            <h4 class="font-semibold text-gray-800">⚙️ Konfigurasi Sistem</h4>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sistem</label>
+                                    <input type="text" id="systemName" value="Sistem Absen Karyawan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Versi Sistem</label>
+                                    <input type="text" id="systemVersion" value="v1.5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Max Karyawan</label>
+                                    <input type="number" id="maxEmployees" value="50" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Auto Backup (menit)</label>
+                                    <input type="number" id="backupInterval" value="30" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-4">
+                        <button onclick="saveCompanySettings()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                            💾 Simpan Pengaturan Perusahaan
+                        </button>
+                        <button onclick="saveAdminSettings()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                            💾 Simpan Pengaturan Sistem
+                        </button>
+                        <button onclick="resetCompanySettings()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                            🔄 Reset Pengaturan
+                        </button>
+                        <button onclick="clearAllData()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200">
+                            🗑️ Hapus Semua Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize data
+        let attendanceData = JSON.parse(localStorage.getItem('attendanceData')) || [];
+        const ADMIN_PASSWORD = "Amranbd110418";
+        let isAdminLoggedIn = false;
+        let isAdminActive = false;
+        let currentTab = 'dashboard';
+        
+        // Admin Configuration
+        let adminConfig = {
+            adminId: 'ADMIN_' + Date.now(),
+            systemName: 'Sistem Absen Karyawan',
+            version: 'v1.5',
+            maxEmployees: 50,
+            backupInterval: 30,
+            isActive: false,
+            startTime: null,
+            dataVersion: 1
+        };
+
+        // Company Configuration
+        let companyConfig = JSON.parse(localStorage.getItem('companyConfig')) || {
+            companyName: 'PT. CONTOH PERUSAHAAN',
+            address: 'Jl. Contoh No. 123, Jakarta',
+            phone: '+62 21 1234567',
+            email: 'info@perusahaan.com',
+            website: 'www.perusahaan.com',
+            logo: '', // Base64 image
+            directorSignature: '', // Base64 image
+            hrdSignature: '', // Base64 image
+            directorName: 'Nama Direktur',
+            hrdName: 'Nama HRD',
+            template: 'modern', // modern, classic, minimal
+            primaryColor: '#3B82F6',
+            secondaryColor: '#10B981',
+            lastUpdated: new Date().toISOString()
+        };
+        
+        // Employee Management
+        let employeeList = [];
+
+        // Division Management
+        let divisionList = JSON.parse(localStorage.getItem('divisionList')) || [
+            {id: 1, name: 'Staff Kantor', description: 'Administrasi dan operasional kantor', status: 'Aktif'},
+            {id: 2, name: 'Parkir', description: 'Pengelolaan area parkir', status: 'Aktif'},
+            {id: 3, name: 'Kantin', description: 'Pelayanan makanan dan minuman', status: 'Aktif'},
+            {id: 4, name: 'Kebersihan', description: 'Maintenance dan kebersihan', status: 'Aktif'},
+            {id: 5, name: 'BDLink & Penginapan', description: 'Layanan penginapan dan koneksi', status: 'Aktif'},
+            {id: 6, name: 'BD Link', description: 'Layanan koneksi dan teknologi', status: 'Aktif'}
+        ];
+
+        // Shift Management
+        let shiftList = JSON.parse(localStorage.getItem('shiftList')) || [
+            {id: 1, name: 'Shift Kantor', startTime: '08:00', endTime: '16:00', description: 'Jam kerja kantor normal', status: 'Aktif'},
+            {id: 2, name: 'Kantin Siang', startTime: '09:00', endTime: '16:00', description: 'Shift siang kantin', status: 'Aktif'},
+            {id: 3, name: 'Kantin Sore', startTime: '16:00', endTime: '23:59', description: 'Shift sore kantin', status: 'Aktif'},
+            {id: 4, name: 'Kantin Malam', startTime: '23:45', endTime: '09:00', description: 'Shift malam kantin', status: 'Aktif'},
+            {id: 5, name: 'Parkir', startTime: '23:45', endTime: '09:00', description: 'Shift malam parkir', status: 'Aktif'},
+            {id: 6, name: 'BDLink & Penginapan', startTime: '23:00', endTime: '09:00', description: 'Shift malam penginapan', status: 'Aktif'}
+        ];
+
+
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminStatus();
+            updateEmployeeDropdown();
+            updateDivisionDropdowns();
+            updateShiftDropdown();
+            handleUrlParameters();
+            loadCompanySettings();
+            applyCompanyBranding();
+            
+            // Clear employee data from localStorage on page load
+            localStorage.removeItem('employeeList');
+            
+            // Auto-refresh admin dashboard every 5 seconds
+            setInterval(() => {
+                if (isAdminLoggedIn) {
+                    updateAdminDashboard();
+                }
+            }, 5000);
+            
+            // Setup color input synchronization
+            setupColorInputs();
+        });
+
+        function handleUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            
+            if (mode === 'employee') {
+                // Auto-open employee form
+                setTimeout(() => {
+                    showEmployeeForm();
+                    addActivityLog('[DIRECT] Form karyawan dibuka via link langsung');
+                }, 500);
+            } else if (mode === 'admin') {
+                // Auto-open admin login
+                setTimeout(() => {
+                    showAdminLogin();
+                    addActivityLog('[DIRECT] Login admin dibuka via link langsung');
+                }, 500);
+            }
+        }
+
+        function checkAdminStatus() {
+            isAdminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            if (isAdminLoggedIn) {
+                // Don't auto-show admin dashboard, let user choose
+                addActivityLog('[SYSTEM] Admin session available');
+            }
+        }
+
+        // Navigation Functions
+        function showEmployeeForm() {
+            document.querySelector('.max-w-4xl').classList.add('hidden'); // Hide main navigation
+            document.getElementById('employeeSection').classList.remove('hidden');
+        }
+
+        function showAdminLogin() {
+            document.querySelector('.max-w-4xl').classList.add('hidden'); // Hide main navigation
+            document.getElementById('adminSection').classList.remove('hidden');
+        }
+
+        function backToMain() {
+            // Hide all sections
+            document.getElementById('employeeSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+            
+            // Show main navigation
+            document.querySelector('.max-w-4xl').classList.remove('hidden');
+            
+            // Reset forms
+            document.getElementById('adminPassword').value = '';
+            clearEmployeeForm();
+        }
+
+        function clearEmployeeForm() {
+            document.getElementById('employeeName').value = '';
+            document.getElementById('employeeDivision').value = '';
+            document.getElementById('employeeShift').value = '';
+            document.getElementById('statusMessage').classList.add('hidden');
+        }
+
+        function loginAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                isAdminLoggedIn = true;
+                isAdminActive = true;
+                
+                adminConfig.isActive = true;
+                adminConfig.startTime = new Date().toISOString();
+                
+                localStorage.setItem('adminLoggedIn', 'true');
+                localStorage.setItem('adminLoginTime', new Date().toISOString());
+                localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
+                
+                showAdminDashboard();
+                
+                showMessage('👨‍💼 Login admin berhasil!', 'success');
+                addActivityLog('[LOGIN] Admin berhasil login');
+                addActivityLog('[INFO] Dashboard admin siap digunakan');
+                
+            } else {
+                showMessage('Password admin salah!', 'error');
+            }
+        }
+
+        function showAdminDashboard() {
+            document.querySelector('.max-w-4xl').classList.add('hidden'); // Hide main navigation
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            
+            updateAdminDashboard();
+            switchTab('dashboard');
+        }
+
+        function updateAdminDashboard() {
+            if (!isAdminLoggedIn) return;
+            
+            // Update statistics
+            const today = formatDate(new Date());
+            const todayRecords = attendanceData.filter(record => record.date === today);
+            
+            const activeEmployees = employeeList.filter(emp => emp.status === 'Aktif').length;
+            
+            document.getElementById('totalRecords').textContent = attendanceData.length;
+            document.getElementById('todayAttendance').textContent = todayRecords.length;
+            document.getElementById('totalEmployees').textContent = activeEmployees;
+            document.getElementById('lastUpdate').textContent = `Update: ${new Date().toLocaleTimeString('id-ID')}`;
+            
+            // Update login time
+            const loginTime = localStorage.getItem('adminLoginTime');
+            if (loginTime) {
+                const loginDate = new Date(loginTime);
+                document.getElementById('adminLoginTime').textContent = `Login: ${loginDate.toLocaleTimeString('id-ID')}`;
+            }
+            
+            // Calculate today's stats
+            const todayPresent = todayRecords.filter(record => record.clockIn).length;
+            const todayLate = todayRecords.filter(record => {
+                if (!record.clockIn) return false;
+                const clockInTime = new Date(record.clockIn);
+                const hour = clockInTime.getHours();
+                return hour >= 9; // Consider late if after 9 AM
+            }).length;
+            const todayAbsent = activeEmployees - todayPresent;
+            
+            document.getElementById('todayPresent').textContent = todayPresent;
+            document.getElementById('todayLate').textContent = todayLate;
+            document.getElementById('todayAbsent').textContent = todayAbsent;
+            
+            // Update current tab content
+            if (currentTab === 'attendance') {
+                loadDataTable();
+            } else if (currentTab === 'employees') {
+                loadEmployeeList();
+            }
+        }
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const contents = ['dashboardContent', 'attendanceContent', 'employeesContent', 'divisionsContent', 'shiftsContent', 'reportsContent', 'settingsContent'];
+            contents.forEach(content => {
+                document.getElementById(content).classList.add('hidden');
+            });
+
+            // Remove active class from all tabs
+            const tabs = ['dashboardTab', 'attendanceTab', 'employeesTab', 'divisionsTab', 'shiftsTab', 'reportsTab', 'settingsTab'];
+            tabs.forEach(tab => {
+                const element = document.getElementById(tab);
+                element.classList.remove('border-blue-500', 'text-blue-600');
+                element.classList.add('border-transparent', 'text-gray-500');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName + 'Content').classList.remove('hidden');
+            
+            // Add active class to selected tab
+            const activeTab = document.getElementById(tabName + 'Tab');
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+            activeTab.classList.add('border-blue-500', 'text-blue-600');
+
+            currentTab = tabName;
+
+            // Load data for specific tabs
+            if (tabName === 'attendance') {
+                loadDataTable();
+            } else if (tabName === 'employees') {
+                loadEmployeeList();
+            } else if (tabName === 'divisions') {
+                loadDivisionList();
+            } else if (tabName === 'shifts') {
+                loadShiftList();
+            }
+        }
+
+        function addActivityLog(message) {
+            const timestamp = new Date().toLocaleTimeString('id-ID');
+            const logContainer = document.getElementById('activityLogs');
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-gray-600';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+            
+            // Keep only last 20 logs
+            while (logContainer.children.length > 20) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        // Admin Control Functions
+        function refreshData() {
+            updateAdminDashboard();
+            addActivityLog('[ADMIN] Data berhasil direfresh');
+            showMessage('🔄 Data berhasil direfresh!', 'success');
+        }
+
+        function clearOldData() {
+            if (confirm('Apakah Anda yakin ingin menghapus data absensi yang lebih dari 30 hari?')) {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                
+                const oldCount = attendanceData.length;
+                attendanceData = attendanceData.filter(record => {
+                    const recordDate = new Date(record.date);
+                    return recordDate >= thirtyDaysAgo;
+                });
+                
+                const deletedCount = oldCount - attendanceData.length;
+                localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+                
+                addActivityLog(`[ADMIN] ${deletedCount} data lama berhasil dihapus`);
+                showMessage(`🗑️ ${deletedCount} data lama berhasil dihapus!`, 'success');
+                updateAdminDashboard();
+            }
+        }
+
+        function createBackup() {
+            const backup = {
+                timestamp: new Date().toISOString(),
+                data: attendanceData,
+                employees: employeeList,
+                config: adminConfig
+            };
+            
+            localStorage.setItem('adminBackup_' + Date.now(), JSON.stringify(backup));
+            addActivityLog('[ADMIN] Backup manual berhasil dibuat');
+            showMessage('💾 Backup berhasil dibuat!', 'success');
+        }
+
+        function logoutAdmin() {
+            if (confirm('Apakah Anda yakin ingin logout dari admin?')) {
+                isAdminLoggedIn = false;
+                isAdminActive = false;
+                
+                adminConfig.isActive = false;
+                adminConfig.startTime = null;
+                
+                localStorage.removeItem('adminLoggedIn');
+                localStorage.removeItem('adminLoginTime');
+                localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
+                
+                addActivityLog('[LOGOUT] Admin berhasil logout');
+                
+                // Return to main navigation
+                backToMain();
+                
+                showMessage('🚪 Logout admin berhasil', 'success');
+            }
+        }
+
+        // Division Management Functions
+        function addDivision() {
+            const name = document.getElementById('newDivisionName').value.trim();
+            const description = document.getElementById('newDivisionDescription').value.trim();
+
+            if (!name) {
+                showMessage('Mohon isi nama divisi!', 'error');
+                return;
+            }
+
+            if (divisionList.find(div => div.name.toLowerCase() === name.toLowerCase())) {
+                showMessage('Divisi dengan nama tersebut sudah ada!', 'error');
+                return;
+            }
+
+            const newDivision = {
+                id: Date.now(),
+                name: name,
+                description: description || 'Tidak ada deskripsi',
+                status: 'Aktif'
+            };
+
+            divisionList.push(newDivision);
+            localStorage.setItem('divisionList', JSON.stringify(divisionList));
+            updateDivisionDropdowns();
+            
+            document.getElementById('newDivisionName').value = '';
+            document.getElementById('newDivisionDescription').value = '';
+            
+            loadDivisionList();
+            addActivityLog(`[ADMIN] Divisi baru ditambahkan: ${name}`);
+            showMessage('✅ Divisi berhasil ditambahkan!', 'success');
+        }
+
+        function editDivision(id) {
+            const division = divisionList.find(div => div.id === id);
+            if (!division) return;
+            
+            const newName = prompt('Edit Nama Divisi:', division.name);
+            if (newName === null) return; // User cancelled
+            
+            if (newName.trim() === '') {
+                showMessage('Nama divisi tidak boleh kosong!', 'error');
+                return;
+            }
+            
+            // Check if new name already exists (excluding current division)
+            if (divisionList.find(div => div.id !== id && div.name.toLowerCase() === newName.trim().toLowerCase())) {
+                showMessage('Divisi dengan nama tersebut sudah ada!', 'error');
+                return;
+            }
+            
+            const newDescription = prompt('Edit Deskripsi Divisi:', division.description);
+            if (newDescription === null) return; // User cancelled
+            
+            const oldName = division.name;
+            division.name = newName.trim();
+            division.description = newDescription.trim() || 'Tidak ada deskripsi';
+            
+            // Update employees who use this division
+            employeeList.forEach(emp => {
+                if (emp.division === oldName) {
+                    emp.division = division.name;
+                }
+            });
+            
+            localStorage.setItem('divisionList', JSON.stringify(divisionList));
+            localStorage.setItem('employeeList', JSON.stringify(employeeList));
+            updateDivisionDropdowns();
+            loadDivisionList();
+            
+            addActivityLog(`[ADMIN] Divisi diupdate: ${oldName} → ${division.name}`);
+            showMessage('✅ Divisi berhasil diupdate!', 'success');
+        }
+
+        function removeDivision(id) {
+            const division = divisionList.find(div => div.id === id);
+            
+            // Check if division is being used by employees
+            const employeesInDivision = employeeList.filter(emp => emp.division === division.name);
+            if (employeesInDivision.length > 0) {
+                showMessage(`Tidak dapat menghapus divisi ${division.name}. Masih ada ${employeesInDivision.length} karyawan di divisi ini.`, 'error');
+                return;
+            }
+
+            if (confirm(`Apakah Anda yakin ingin menghapus divisi "${division.name}"?`)) {
+                divisionList = divisionList.filter(div => div.id !== id);
+                localStorage.setItem('divisionList', JSON.stringify(divisionList));
+                updateDivisionDropdowns();
+                loadDivisionList();
+                addActivityLog(`[ADMIN] Divisi dihapus: ${division?.name}`);
+                showMessage('🗑️ Divisi berhasil dihapus!', 'success');
+            }
+        }
+
+        function loadDivisionList() {
+            const tbody = document.getElementById('divisionListBody');
+            tbody.innerHTML = '';
+
+            divisionList.forEach(division => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const employeeCount = employeeList.filter(emp => emp.division === division.name).length;
+                const statusClass = division.status === 'Aktif' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-2 font-medium">${division.name}</td>
+                    <td class="px-4 py-2">${division.description}</td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                            ${employeeCount} orang
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                            ${division.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="editDivision(${division.id})" class="text-blue-600 hover:text-blue-800 text-sm mr-2">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="removeDivision(${division.id})" class="text-red-600 hover:text-red-800 text-sm">
+                            🗑️ Hapus
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateDivisionDropdowns() {
+            // Update employee form division dropdown
+            const employeeDivisionDropdown = document.getElementById('employeeDivision');
+            const newEmployeeDivisionDropdown = document.getElementById('newEmployeeDivision');
+            
+            const activeDivisions = divisionList.filter(div => div.status === 'Aktif');
+            
+            [employeeDivisionDropdown, newEmployeeDivisionDropdown].forEach(dropdown => {
+                if (dropdown) {
+                    const currentValue = dropdown.value;
+                    dropdown.innerHTML = '<option value="">Pilih Divisi</option>';
+                    activeDivisions.forEach(division => {
+                        const option = document.createElement('option');
+                        option.value = division.name;
+                        option.textContent = division.name;
+                        dropdown.appendChild(option);
+                    });
+                    dropdown.value = currentValue; // Restore previous selection if still valid
+                }
+            });
+        }
+
+        // Shift Management Functions
+        function addShift() {
+            const name = document.getElementById('newShiftName').value.trim();
+            const startTime = document.getElementById('newShiftStart').value;
+            const endTime = document.getElementById('newShiftEnd').value;
+            const description = document.getElementById('newShiftDescription').value.trim();
+
+            if (!name || !startTime || !endTime) {
+                showMessage('Mohon isi nama shift, jam mulai, dan jam selesai!', 'error');
+                return;
+            }
+
+            if (shiftList.find(shift => shift.name.toLowerCase() === name.toLowerCase())) {
+                showMessage('Shift dengan nama tersebut sudah ada!', 'error');
+                return;
+            }
+
+            const newShift = {
+                id: Date.now(),
+                name: name,
+                startTime: startTime,
+                endTime: endTime,
+                description: description || 'Tidak ada deskripsi',
+                status: 'Aktif'
+            };
+
+            shiftList.push(newShift);
+            localStorage.setItem('shiftList', JSON.stringify(shiftList));
+            updateShiftDropdown();
+            
+            document.getElementById('newShiftName').value = '';
+            document.getElementById('newShiftStart').value = '';
+            document.getElementById('newShiftEnd').value = '';
+            document.getElementById('newShiftDescription').value = '';
+            
+            loadShiftList();
+            addActivityLog(`[ADMIN] Shift baru ditambahkan: ${name} (${startTime} - ${endTime})`);
+            showMessage('✅ Shift berhasil ditambahkan!', 'success');
+        }
+
+        function editShift(id) {
+            const shift = shiftList.find(s => s.id === id);
+            if (!shift) return;
+            
+            const newName = prompt('Edit Nama Shift:', shift.name);
+            if (newName === null) return; // User cancelled
+            
+            if (newName.trim() === '') {
+                showMessage('Nama shift tidak boleh kosong!', 'error');
+                return;
+            }
+            
+            // Check if new name already exists (excluding current shift)
+            if (shiftList.find(s => s.id !== id && s.name.toLowerCase() === newName.trim().toLowerCase())) {
+                showMessage('Shift dengan nama tersebut sudah ada!', 'error');
+                return;
+            }
+            
+            const newStartTime = prompt('Edit Jam Mulai (HH:MM):', shift.startTime);
+            if (newStartTime === null) return; // User cancelled
+            
+            if (!newStartTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+                showMessage('Format jam mulai tidak valid! Gunakan format HH:MM', 'error');
+                return;
+            }
+            
+            const newEndTime = prompt('Edit Jam Selesai (HH:MM):', shift.endTime);
+            if (newEndTime === null) return; // User cancelled
+            
+            if (!newEndTime.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+                showMessage('Format jam selesai tidak valid! Gunakan format HH:MM', 'error');
+                return;
+            }
+            
+            const newDescription = prompt('Edit Deskripsi Shift:', shift.description);
+            if (newDescription === null) return; // User cancelled
+            
+            const oldName = shift.name;
+            shift.name = newName.trim();
+            shift.startTime = newStartTime;
+            shift.endTime = newEndTime;
+            shift.description = newDescription.trim() || 'Tidak ada deskripsi';
+            
+            // Update attendance records that use this shift
+            attendanceData.forEach(record => {
+                if (record.shift === oldName) {
+                    record.shift = shift.name;
+                }
+            });
+            
+            localStorage.setItem('shiftList', JSON.stringify(shiftList));
+            localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+            updateShiftDropdown();
+            loadShiftList();
+            
+            addActivityLog(`[ADMIN] Shift diupdate: ${oldName} → ${shift.name} (${shift.startTime}-${shift.endTime})`);
+            showMessage('✅ Shift berhasil diupdate!', 'success');
+        }
+
+        function removeShift(id) {
+            const shift = shiftList.find(s => s.id === id);
+            
+            // Check if shift is being used in attendance records
+            const attendanceWithShift = attendanceData.filter(record => record.shift === shift.name);
+            if (attendanceWithShift.length > 0) {
+                showMessage(`Tidak dapat menghapus shift ${shift.name}. Masih ada ${attendanceWithShift.length} record absensi menggunakan shift ini.`, 'error');
+                return;
+            }
+
+            if (confirm(`Apakah Anda yakin ingin menghapus shift "${shift.name}"?`)) {
+                shiftList = shiftList.filter(s => s.id !== id);
+                localStorage.setItem('shiftList', JSON.stringify(shiftList));
+                updateShiftDropdown();
+                loadShiftList();
+                addActivityLog(`[ADMIN] Shift dihapus: ${shift?.name}`);
+                showMessage('🗑️ Shift berhasil dihapus!', 'success');
+            }
+        }
+
+        function calculateShiftDuration(startTime, endTime) {
+            const start = new Date(`2000-01-01 ${startTime}`);
+            let end = new Date(`2000-01-01 ${endTime}`);
+            
+            // Handle overnight shifts
+            if (end <= start) {
+                end.setDate(end.getDate() + 1);
+            }
+            
+            const diffMs = end - start;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            return `${diffHours}j ${diffMinutes}m`;
+        }
+
+        function loadShiftList() {
+            const tbody = document.getElementById('shiftListBody');
+            tbody.innerHTML = '';
+
+            shiftList.forEach(shift => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const duration = calculateShiftDuration(shift.startTime, shift.endTime);
+                const statusClass = shift.status === 'Aktif' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-2 font-medium">${shift.name}</td>
+                    <td class="px-4 py-2 text-center">${shift.startTime}</td>
+                    <td class="px-4 py-2 text-center">${shift.endTime}</td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                            ${duration}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">${shift.description}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                            ${shift.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="editShift(${shift.id})" class="text-blue-600 hover:text-blue-800 text-sm mr-2">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="removeShift(${shift.id})" class="text-red-600 hover:text-red-800 text-sm">
+                            🗑️ Hapus
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateShiftDropdown() {
+            const shiftDropdown = document.getElementById('employeeShift');
+            const activeShifts = shiftList.filter(shift => shift.status === 'Aktif');
+            
+            if (shiftDropdown) {
+                const currentValue = shiftDropdown.value;
+                shiftDropdown.innerHTML = '<option value="">Pilih Shift</option>';
+                activeShifts.forEach(shift => {
+                    const option = document.createElement('option');
+                    option.value = shift.name;
+                    option.textContent = `${shift.name} (${shift.startTime} - ${shift.endTime})`;
+                    shiftDropdown.appendChild(option);
+                });
+                shiftDropdown.value = currentValue; // Restore previous selection if still valid
+            }
+        }
+
+        // Employee Management Functions
+        function addEmployee() {
+            const name = document.getElementById('newEmployeeName').value.trim();
+            const division = document.getElementById('newEmployeeDivision').value;
+            const position = document.getElementById('newEmployeePosition').value.trim();
+            const joinDate = document.getElementById('newEmployeeJoinDate').value;
+
+            if (!name || !division || !position || !joinDate) {
+                showMessage('Mohon isi semua field karyawan!', 'error');
+                return;
+            }
+
+            if (employeeList.find(emp => emp.name.toLowerCase() === name.toLowerCase())) {
+                showMessage('Karyawan dengan nama tersebut sudah ada!', 'error');
+                return;
+            }
+
+            const newEmployee = {
+                id: Date.now(),
+                name: name,
+                division: division,
+                position: position,
+                joinDate: joinDate,
+                status: 'Aktif'
+            };
+
+            employeeList.push(newEmployee);
+            // Note: Employee data is not persisted to localStorage - resets on page reload
+            updateEmployeeDropdown();
+            
+            document.getElementById('newEmployeeName').value = '';
+            document.getElementById('newEmployeeDivision').value = '';
+            document.getElementById('newEmployeePosition').value = '';
+            document.getElementById('newEmployeeJoinDate').value = '';
+            
+            loadEmployeeList();
+            addActivityLog(`[ADMIN] Karyawan baru ditambahkan: ${name} - ${position} (${division})`);
+            showMessage('✅ Karyawan berhasil ditambahkan!', 'success');
+        }
+
+        function editEmployee(id) {
+            const employee = employeeList.find(emp => emp.id === id);
+            if (!employee) return;
+            
+            const newName = prompt('Edit Nama Karyawan:', employee.name);
+            if (newName === null) return; // User cancelled
+            
+            if (newName.trim() === '') {
+                showMessage('Nama karyawan tidak boleh kosong!', 'error');
+                return;
+            }
+            
+            // Check if new name already exists (excluding current employee)
+            if (employeeList.find(emp => emp.id !== id && emp.name.toLowerCase() === newName.trim().toLowerCase())) {
+                showMessage('Karyawan dengan nama tersebut sudah ada!', 'error');
+                return;
+            }
+            
+            // Show division selection dialog
+            const activeDivisions = divisionList.filter(div => div.status === 'Aktif');
+            let divisionOptions = 'Pilih Divisi:\n';
+            activeDivisions.forEach((div, index) => {
+                divisionOptions += `${index + 1}. ${div.name}\n`;
+            });
+            
+            const divisionChoice = prompt(divisionOptions + '\nMasukkan nomor pilihan:', '');
+            if (divisionChoice === null) return; // User cancelled
+            
+            const divisionIndex = parseInt(divisionChoice) - 1;
+            if (isNaN(divisionIndex) || divisionIndex < 0 || divisionIndex >= activeDivisions.length) {
+                showMessage('Pilihan divisi tidak valid!', 'error');
+                return;
+            }
+            
+            const newDivision = activeDivisions[divisionIndex].name;
+            const oldName = employee.name;
+            const oldDivision = employee.division;
+            
+            employee.name = newName.trim();
+            employee.division = newDivision;
+            
+            // Update attendance records that use this employee
+            attendanceData.forEach(record => {
+                if (record.employeeName === oldName && record.division === oldDivision) {
+                    record.employeeName = employee.name;
+                    record.division = employee.division;
+                }
+            });
+            
+            // Note: Employee data is not persisted to localStorage - resets on page reload
+            updateEmployeeDropdown();
+            loadEmployeeList();
+            
+            addActivityLog(`[ADMIN] Karyawan diupdate: ${oldName} (${oldDivision}) → ${employee.name} (${employee.division})`);
+            showMessage('✅ Karyawan berhasil diupdate!', 'success');
+        }
+
+        function toggleEmployeeStatus(id) {
+            const employee = employeeList.find(emp => emp.id === id);
+            if (!employee) return;
+            
+            const newStatus = employee.status === 'Aktif' ? 'Nonaktif' : 'Aktif';
+            const action = newStatus === 'Nonaktif' ? 'menonaktifkan' : 'mengaktifkan';
+            
+            if (confirm(`Apakah Anda yakin ingin ${action} karyawan "${employee.name}"?`)) {
+                employee.status = newStatus;
+                // Note: Employee data is not persisted to localStorage - resets on page reload
+                updateEmployeeDropdown(); // This will hide inactive employees from dropdown
+                loadEmployeeList();
+                updateAdminDashboard();
+                
+                const statusText = newStatus === 'Nonaktif' ? 'dinonaktifkan' : 'diaktifkan';
+                addActivityLog(`[ADMIN] Karyawan ${employee.name} ${statusText}`);
+                showMessage(`✅ Karyawan ${employee.name} berhasil ${statusText}!`, 'success');
+            }
+        }
+
+        function removeEmployee(id) {
+            const employee = employeeList.find(emp => emp.id === id);
+            
+            // Check if employee has attendance records
+            const employeeAttendance = attendanceData.filter(record => 
+                record.employeeName === employee.name && record.division === employee.division
+            );
+            
+            if (employeeAttendance.length > 0) {
+                const deleteWithRecords = confirm(
+                    `Karyawan ${employee.name} memiliki ${employeeAttendance.length} record absensi.\n\n` +
+                    'Pilih OK untuk menghapus karyawan beserta semua record absensinya.\n' +
+                    'Pilih Cancel untuk membatalkan.'
+                );
+                
+                if (deleteWithRecords) {
+                    // Remove employee and all their attendance records
+                    attendanceData = attendanceData.filter(record => 
+                        !(record.employeeName === employee.name && record.division === employee.division)
+                    );
+                    localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+                    addActivityLog(`[ADMIN] ${employeeAttendance.length} record absensi ${employee.name} ikut dihapus`);
+                } else {
+                    return; // User cancelled
+                }
+            }
+            
+            if (confirm(`Apakah Anda yakin ingin menghapus karyawan "${employee.name}"?`)) {
+                employeeList = employeeList.filter(emp => emp.id !== id);
+                // Note: Employee data is not persisted to localStorage - resets on page reload
+                updateEmployeeDropdown();
+                loadEmployeeList();
+                updateAdminDashboard(); // Refresh dashboard stats
+                addActivityLog(`[ADMIN] Karyawan dihapus: ${employee?.name}`);
+                showMessage('🗑️ Karyawan berhasil dihapus!', 'success');
+            }
+        }
+
+        function filterEmployeeList() {
+            const filter = document.getElementById('employeeStatusFilter').value;
+            loadEmployeeList(filter);
+        }
+
+        function loadEmployeeList(statusFilter = 'all') {
+            const tbody = document.getElementById('employeeListBody');
+            tbody.innerHTML = '';
+
+            const filteredEmployees = statusFilter === 'all' 
+                ? employeeList 
+                : employeeList.filter(emp => emp.status === statusFilter);
+
+            if (filteredEmployees.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        ${statusFilter === 'all' ? 'Belum ada karyawan' : `Tidak ada karyawan dengan status ${statusFilter}`}
+                    </td>
+                `;
+                tbody.appendChild(row);
+                return;
+            }
+
+            filteredEmployees.forEach(employee => {
+                const row = document.createElement('tr');
+                row.className = employee.status === 'Aktif' ? 'hover:bg-gray-50' : 'hover:bg-gray-50 opacity-75';
+                
+                const statusClass = employee.status === 'Aktif' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+                const toggleButtonText = employee.status === 'Aktif' ? '⏸️ Nonaktifkan' : '▶️ Aktifkan';
+                const toggleButtonClass = employee.status === 'Aktif' ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800';
+                
+                // Format join date
+                const joinDate = employee.joinDate ? new Date(employee.joinDate).toLocaleDateString('id-ID') : '-';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-2 ${employee.status === 'Nonaktif' ? 'text-gray-500' : ''}">${employee.name}</td>
+                    <td class="px-4 py-2 ${employee.status === 'Nonaktif' ? 'text-gray-500' : ''}">${employee.division}</td>
+                    <td class="px-4 py-2 ${employee.status === 'Nonaktif' ? 'text-gray-500' : ''}">${employee.position || '-'}</td>
+                    <td class="px-4 py-2 ${employee.status === 'Nonaktif' ? 'text-gray-500' : ''}">${joinDate}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                            ${employee.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="editEmployee(${employee.id})" class="text-blue-600 hover:text-blue-800 text-sm mr-2">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="toggleEmployeeStatus(${employee.id})" class="${toggleButtonClass} text-sm mr-2">
+                            ${toggleButtonText}
+                        </button>
+                        <button onclick="removeEmployee(${employee.id})" class="text-red-600 hover:text-red-800 text-sm">
+                            🗑️ Hapus
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateEmployeeDropdown() {
+            const dropdown = document.getElementById('employeeName');
+            const activeEmployees = employeeList.filter(emp => emp.status === 'Aktif');
+            
+            dropdown.innerHTML = '<option value="">Pilih Nama Karyawan</option>';
+            activeEmployees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.name;
+                option.textContent = employee.name;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Report Functions
+        function exportAdminReport() {
+            const adminReport = {
+                adminInfo: {
+                    systemName: 'Sistem Absen Karyawan',
+                    version: 'v1.5',
+                    adminId: 'ADMIN_' + Date.now()
+                },
+                totalRecords: attendanceData.length,
+                employees: employeeList.length,
+                exportTime: new Date().toISOString(),
+                data: attendanceData
+            };
+            
+            const logoSection = companyConfig.logo ? `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="${companyConfig.logo}" alt="Company Logo" style="height: 60px; width: auto;">
+                </div>
+            ` : '';
+            
+            const signatureSection = `
+                <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                    <div style="text-align: center; width: 45%;">
+                        <p><strong>Direktur</strong></p>
+                        ${companyConfig.directorSignature ? `<img src="${companyConfig.directorSignature}" alt="Director Signature" style="height: 60px; width: auto; margin: 20px 0;">` : '<div style="height: 80px;"></div>'}
+                        <p style="border-top: 1px solid #000; padding-top: 5px; margin-top: 10px;">${companyConfig.directorName}</p>
+                    </div>
+                    <div style="text-align: center; width: 45%;">
+                        <p><strong>HRD</strong></p>
+                        ${companyConfig.hrdSignature ? `<img src="${companyConfig.hrdSignature}" alt="HRD Signature" style="height: 60px; width: auto; margin: 20px 0;">` : '<div style="height: 80px;"></div>'}
+                        <p style="border-top: 1px solid #000; padding-top: 5px; margin-top: 10px;">${companyConfig.hrdName}</p>
+                    </div>
+                </div>
+            `;
+            
+            const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Absensi - ${companyConfig.companyName}</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            color: #333;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            border-bottom: 2px solid ${companyConfig.primaryColor}; 
+            padding-bottom: 20px; 
+        }
+        .company-info { 
+            background: ${companyConfig.primaryColor}15; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid ${companyConfig.primaryColor};
+        }
+        .admin-info { 
+            background: #f0f8ff; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 5px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+            font-size: 12px;
+        }
+        th { 
+            background-color: ${companyConfig.primaryColor}; 
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+        }
+        .company-title {
+            color: ${companyConfig.primaryColor};
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    ${logoSection}
+    
+    <div class="header">
+        <div class="company-title">${companyConfig.companyName}</div>
+        <p style="margin: 5px 0; font-size: 14px;">${companyConfig.address}</p>
+        <p style="margin: 5px 0; font-size: 14px;">Telp: ${companyConfig.phone} | Email: ${companyConfig.email}</p>
+        <h1 style="margin: 20px 0; color: ${companyConfig.primaryColor};">📋 LAPORAN ABSENSI KARYAWAN</h1>
+        <p>Periode: ${new Date().toLocaleDateString('id-ID')}</p>
+    </div>
+    
+    <div class="company-info">
+        <h3 style="color: ${companyConfig.primaryColor}; margin-top: 0;">🏢 Informasi Perusahaan</h3>
+        <p><strong>Perusahaan:</strong> ${companyConfig.companyName}</p>
+        <p><strong>Alamat:</strong> ${companyConfig.address}</p>
+        <p><strong>Telepon:</strong> ${companyConfig.phone}</p>
+        <p><strong>Email:</strong> ${companyConfig.email}</p>
+        <p><strong>Website:</strong> ${companyConfig.website}</p>
+    </div>
+    
+    <div class="admin-info">
+        <h3 style="color: ${companyConfig.primaryColor}; margin-top: 0;">📊 Ringkasan Data</h3>
+        <p><strong>Total Records:</strong> ${attendanceData.length}</p>
+        <p><strong>Total Karyawan:</strong> ${employeeList.length}</p>
+        <p><strong>Tanggal Export:</strong> ${new Date().toLocaleString('id-ID')}</p>
+        <p><strong>Sistem:</strong> ${adminReport.adminInfo.systemName} ${adminReport.adminInfo.version}</p>
+    </div>
+    
+    <h3 style="color: ${companyConfig.primaryColor};">📋 Data Absensi Karyawan</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Tanggal</th>
+                <th>Nama Karyawan</th>
+                <th>Divisi</th>
+                <th>Shift</th>
+                <th>Jam Masuk</th>
+                <th>Jam Pulang</th>
+                <th>Total Jam</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${attendanceData.map((record, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${record.date}</td>
+                    <td>${record.employeeName}</td>
+                    <td>${record.division}</td>
+                    <td>${record.shift}</td>
+                    <td>${record.clockInTime || '-'}</td>
+                    <td>${record.clockOutTime || '-'}</td>
+                    <td>${record.totalHours || '-'}</td>
+                    <td style="color: ${!record.clockOut ? '#dc2626' : '#16a34a'};">${!record.clockOut ? 'Belum Pulang' : 'Selesai'}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    
+    ${signatureSection}
+    
+    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px;">
+        <p>📋 Laporan ini dibuat secara otomatis oleh Sistem Absen Karyawan</p>
+        <p>👨‍💻 Created by AMRAN | ${new Date().toLocaleString('id-ID')}</p>
+    </div>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Laporan_Admin_${new Date().toISOString().split('T')[0]}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            addActivityLog('[ADMIN] Laporan berhasil diexport');
+            showMessage('📥 Laporan admin berhasil diunduh!', 'success');
+        }
+
+        function shareAdminData() {
+            const message = `🏢 *${companyConfig.companyName}*\n` +
+                          `📋 *LAPORAN ABSENSI KARYAWAN*\n\n` +
+                          `📍 ${companyConfig.address}\n` +
+                          `📞 ${companyConfig.phone}\n` +
+                          `📧 ${companyConfig.email}\n\n` +
+                          `📊 *RINGKASAN DATA:*\n` +
+                          `📈 Total Records: ${attendanceData.length}\n` +
+                          `👥 Total Karyawan: ${employeeList.length}\n` +
+                          `📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}\n` +
+                          `⏰ Waktu: ${new Date().toLocaleTimeString('id-ID')}\n\n` +
+                          `🔄 Sistem: Sistem Absen Karyawan v1.5\n` +
+                          `👨‍💼 Dashboard Admin\n\n` +
+                          `✍️ Direktur: ${companyConfig.directorName}\n` +
+                          `👨‍💻 HRD: ${companyConfig.hrdName}\n\n` +
+                          `📱 Created by AMRAN`;
+
+            const encodedMessage = encodeURIComponent(message);
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const whatsappUrl = isMobile ? `https://wa.me/?text=${encodedMessage}` : `https://web.whatsapp.com/send?text=${encodedMessage}`;
+            
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+            addActivityLog('[ADMIN] Data berhasil dibagikan via WhatsApp');
+            showMessage('📱 WhatsApp terbuka! Data admin siap dibagikan.', 'success');
+        }
+
+        function printReport() {
+            const printWindow = window.open('', '_blank');
+            const printContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Absensi - ${new Date().toLocaleDateString('id-ID')}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #f0f0f0; }
+        @media print { body { margin: 0; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 LAPORAN ABSENSI KARYAWAN</h1>
+        <p>Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+        <p>Total Records: ${attendanceData.length} | Total Karyawan: ${employeeList.length}</p>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Tanggal</th>
+                <th>Nama</th>
+                <th>Divisi</th>
+                <th>Shift</th>
+                <th>Masuk</th>
+                <th>Pulang</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${attendanceData.map((record, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${record.date}</td>
+                    <td>${record.employeeName}</td>
+                    <td>${record.division}</td>
+                    <td>${record.shift}</td>
+                    <td>${record.clockInTime || '-'}</td>
+                    <td>${record.clockOutTime || '-'}</td>
+                    <td>${!record.clockOut ? 'Belum Pulang' : 'Selesai'}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 30px; text-align: center; font-size: 12px;">
+        <p>Created by AMRAN | Sistem Absen Karyawan v1.5</p>
+    </div>
+</body>
+</html>`;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            
+            addActivityLog('[ADMIN] Laporan berhasil dicetak');
+            showMessage('🖨️ Laporan siap dicetak!', 'success');
+        }
+
+        // Settings Functions
+        function saveAdminSettings() {
+            const systemName = document.getElementById('systemName').value;
+            const systemVersion = document.getElementById('systemVersion').value;
+            const maxEmployees = parseInt(document.getElementById('maxEmployees').value);
+            const backupInterval = parseInt(document.getElementById('backupInterval').value);
+            
+            // Save settings to localStorage
+            const adminSettings = {
+                systemName,
+                systemVersion,
+                maxEmployees,
+                backupInterval,
+                lastUpdate: new Date().toISOString()
+            };
+            
+            localStorage.setItem('adminSettings', JSON.stringify(adminSettings));
+            addActivityLog('[ADMIN] Pengaturan sistem berhasil disimpan');
+            showMessage('💾 Pengaturan admin berhasil disimpan!', 'success');
+        }
+
+        function resetSystem() {
+            if (confirm('Apakah Anda yakin ingin reset sistem ke pengaturan default?')) {
+                // Reset form values
+                document.getElementById('systemName').value = 'Sistem Absen Karyawan';
+                document.getElementById('systemVersion').value = 'v1.5';
+                document.getElementById('maxEmployees').value = '50';
+                document.getElementById('backupInterval').value = '30';
+                
+                localStorage.removeItem('adminSettings');
+                addActivityLog('[ADMIN] Sistem berhasil direset ke pengaturan default');
+                showMessage('🔄 Sistem berhasil direset!', 'success');
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('PERINGATAN: Ini akan menghapus SEMUA data absensi dan karyawan. Apakah Anda yakin?')) {
+                attendanceData = [];
+                employeeList = [];
+                localStorage.removeItem('attendanceData');
+                // Note: Employee data is already cleared on page load
+                
+                updateEmployeeDropdown();
+                updateAdminDashboard();
+                
+                addActivityLog('[ADMIN] Semua data berhasil dihapus');
+                showMessage('🗑️ Semua data berhasil dihapus!', 'success');
+            }
+        }
+
+
+
+        // Attendance functions
+        function getCurrentDateTime() {
+            return new Date();
+        }
+
+        function formatDateTime(date) {
+            return date.toLocaleString('id-ID', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('id-ID');
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('statusMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `mt-4 p-3 rounded-lg text-center fade-in ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 3000);
+        }
+
+        function clockIn() {
+            const name = document.getElementById('employeeName').value;
+            const division = document.getElementById('employeeDivision').value;
+            const shift = document.getElementById('employeeShift').value;
+
+            if (!name || !division || !shift) {
+                showMessage('Mohon isi nama, pilih divisi, dan pilih shift', 'error');
+                return;
+            }
+
+
+
+            const now = getCurrentDateTime();
+            const today = formatDate(now);
+
+            // Check if already clocked in today
+            const existingRecord = attendanceData.find(record => 
+                record.employeeName === name && record.division === division && record.date === today && record.shift === shift
+            );
+
+            if (existingRecord && existingRecord.clockIn) {
+                showMessage('Anda sudah absen masuk hari ini', 'error');
+                return;
+            }
+
+            // Create or update record
+            if (existingRecord) {
+                existingRecord.clockIn = now;
+                existingRecord.clockInTime = formatTime(now);
+            } else {
+                attendanceData.push({
+                    date: today,
+                    employeeName: name,
+                    division: division,
+                    shift: shift,
+                    clockIn: now,
+                    clockInTime: formatTime(now),
+                    clockOut: null,
+                    clockOutTime: '-',
+                    totalHours: '-',
+                    status: 'Masuk'
+                });
+            }
+
+            saveData();
+            
+            if (isAdminLoggedIn) {
+                addActivityLog(`[ABSEN] ${name} masuk - ${division} - ${shift}`);
+                updateAdminDashboard();
+            }
+            
+            showMessage(`Berhasil absen masuk pada ${formatTime(now)}`, 'success');
+        }
+
+        function clockOut() {
+            const name = document.getElementById('employeeName').value;
+            const division = document.getElementById('employeeDivision').value;
+            const shift = document.getElementById('employeeShift').value;
+
+            if (!name || !division || !shift) {
+                showMessage('Mohon isi nama, pilih divisi, dan pilih shift', 'error');
+                return;
+            }
+
+            const now = getCurrentDateTime();
+            const today = formatDate(now);
+
+            // Find today's record
+            const record = attendanceData.find(record => 
+                record.employeeName === name && record.division === division && record.date === today && record.shift === shift
+            );
+
+            if (!record || !record.clockIn) {
+                showMessage('Anda belum absen masuk hari ini', 'error');
+                return;
+            }
+
+            if (record.clockOut) {
+                showMessage('Anda sudah absen pulang hari ini', 'error');
+                return;
+            }
+
+            // Update record
+            record.clockOut = now;
+            record.clockOutTime = formatTime(now);
+            
+            // Calculate total hours
+            const diffMs = now - record.clockIn;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            record.totalHours = `${diffHours}j ${diffMinutes}m`;
+            record.status = 'Selesai';
+
+            saveData();
+            
+            if (isAdminLoggedIn) {
+                addActivityLog(`[ABSEN] ${name} pulang - ${division} - ${shift}`);
+                updateAdminDashboard();
+            }
+            
+            showMessage(`Berhasil absen pulang pada ${formatTime(now)}`, 'success');
+        }
+
+
+
+        function saveData() {
+            localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+            localStorage.setItem('lastUpdate', new Date().getTime().toString());
+            
+            if (isAdminActive) {
+                adminConfig.dataVersion++;
+                localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
+            }
+        }
+
+        function loadDataTable() {
+            const sortedData = [...attendanceData].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const tableBody = document.getElementById('dataTableBody');
+            tableBody.innerHTML = '';
+
+            sortedData.slice(0, 20).forEach(record => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const status = !record.clockOut ? 'Belum Pulang' : 'Selesai';
+                const statusClass = !record.clockOut ? 'text-red-600' : 'text-green-600';
+
+                row.innerHTML = `
+                    <td class="px-3 py-2">${record.date}</td>
+                    <td class="px-3 py-2">${record.employeeName}</td>
+                    <td class="px-3 py-2">${record.division}</td>
+                    <td class="px-3 py-2">${record.shift}</td>
+                    <td class="px-3 py-2 text-center">${record.clockInTime || '-'}</td>
+                    <td class="px-3 py-2 text-center">${record.clockOutTime || '-'}</td>
+                    <td class="px-3 py-2 text-center ${statusClass}">${status}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+
+
+        // Company Settings Functions
+        function loadCompanySettings() {
+            // Load settings into form inputs
+            document.getElementById('companyNameInput').value = companyConfig.companyName;
+            document.getElementById('companyAddressInput').value = companyConfig.address;
+            document.getElementById('companyPhoneInput').value = companyConfig.phone;
+            document.getElementById('companyEmailInput').value = companyConfig.email;
+            document.getElementById('companyWebsiteInput').value = companyConfig.website;
+            document.getElementById('directorNameInput').value = companyConfig.directorName;
+            document.getElementById('hrdNameInput').value = companyConfig.hrdName;
+            document.getElementById('templateSelect').value = companyConfig.template;
+            document.getElementById('primaryColorInput').value = companyConfig.primaryColor;
+            document.getElementById('primaryColorText').value = companyConfig.primaryColor;
+            document.getElementById('secondaryColorInput').value = companyConfig.secondaryColor;
+            document.getElementById('secondaryColorText').value = companyConfig.secondaryColor;
+            
+            // Load images
+            if (companyConfig.logo) {
+                document.getElementById('logoPreview').src = companyConfig.logo;
+                document.getElementById('logoPreview').classList.remove('hidden');
+                document.getElementById('logoPlaceholder').classList.add('hidden');
+            }
+            
+            if (companyConfig.directorSignature) {
+                document.getElementById('directorSignaturePreview').src = companyConfig.directorSignature;
+                document.getElementById('directorSignaturePreview').classList.remove('hidden');
+                document.getElementById('directorSignaturePlaceholder').classList.add('hidden');
+            }
+            
+            if (companyConfig.hrdSignature) {
+                document.getElementById('hrdSignaturePreview').src = companyConfig.hrdSignature;
+                document.getElementById('hrdSignaturePreview').classList.remove('hidden');
+                document.getElementById('hrdSignaturePlaceholder').classList.add('hidden');
+            }
+        }
+
+        function applyCompanyBranding() {
+            // Update header with company info
+            document.getElementById('companyName').textContent = companyConfig.companyName;
+            document.getElementById('companyAddress').textContent = companyConfig.address;
+            
+            // Apply logo if exists
+            if (companyConfig.logo) {
+                document.getElementById('logoImage').src = companyConfig.logo;
+                document.getElementById('companyLogo').classList.remove('hidden');
+            }
+            
+            // Apply colors
+            document.documentElement.style.setProperty('--primary-color', companyConfig.primaryColor);
+            document.documentElement.style.setProperty('--secondary-color', companyConfig.secondaryColor);
+            
+            // Apply template styles
+            applyTemplate(companyConfig.template);
+        }
+
+        function setupColorInputs() {
+            // Sync color picker with text input
+            document.getElementById('primaryColorInput').addEventListener('input', function() {
+                document.getElementById('primaryColorText').value = this.value;
+                previewColors();
+            });
+            
+            document.getElementById('primaryColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('primaryColorInput').value = this.value;
+                    previewColors();
+                }
+            });
+            
+            document.getElementById('secondaryColorInput').addEventListener('input', function() {
+                document.getElementById('secondaryColorText').value = this.value;
+                previewColors();
+            });
+            
+            document.getElementById('secondaryColorText').addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    document.getElementById('secondaryColorInput').value = this.value;
+                    previewColors();
+                }
+            });
+        }
+
+        function previewColors() {
+            const primaryColor = document.getElementById('primaryColorText').value;
+            const secondaryColor = document.getElementById('secondaryColorText').value;
+            
+            if (primaryColor.match(/^#[0-9A-F]{6}$/i)) {
+                document.documentElement.style.setProperty('--primary-color', primaryColor);
+                document.getElementById('companyName').style.color = primaryColor;
+            }
+            
+            if (secondaryColor.match(/^#[0-9A-F]{6}$/i)) {
+                document.documentElement.style.setProperty('--secondary-color', secondaryColor);
+            }
+        }
+
+        function handleImageUpload(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                showMessage('Ukuran file terlalu besar! Maksimal 2MB.', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                
+                if (type === 'logo') {
+                    document.getElementById('logoPreview').src = base64;
+                    document.getElementById('logoPreview').classList.remove('hidden');
+                    document.getElementById('logoPlaceholder').classList.add('hidden');
+                    companyConfig.logo = base64;
+                } else if (type === 'directorSignature') {
+                    document.getElementById('directorSignaturePreview').src = base64;
+                    document.getElementById('directorSignaturePreview').classList.remove('hidden');
+                    document.getElementById('directorSignaturePlaceholder').classList.add('hidden');
+                    companyConfig.directorSignature = base64;
+                } else if (type === 'hrdSignature') {
+                    document.getElementById('hrdSignaturePreview').src = base64;
+                    document.getElementById('hrdSignaturePreview').classList.remove('hidden');
+                    document.getElementById('hrdSignaturePlaceholder').classList.add('hidden');
+                    companyConfig.hrdSignature = base64;
+                }
+                
+                showMessage(`${type === 'logo' ? 'Logo' : 'Tanda tangan'} berhasil diupload!`, 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage(type) {
+            if (type === 'logo') {
+                document.getElementById('logoPreview').classList.add('hidden');
+                document.getElementById('logoPlaceholder').classList.remove('hidden');
+                document.getElementById('logoUpload').value = '';
+                companyConfig.logo = '';
+            } else if (type === 'directorSignature') {
+                document.getElementById('directorSignaturePreview').classList.add('hidden');
+                document.getElementById('directorSignaturePlaceholder').classList.remove('hidden');
+                document.getElementById('directorSignatureUpload').value = '';
+                companyConfig.directorSignature = '';
+            } else if (type === 'hrdSignature') {
+                document.getElementById('hrdSignaturePreview').classList.add('hidden');
+                document.getElementById('hrdSignaturePlaceholder').classList.remove('hidden');
+                document.getElementById('hrdSignatureUpload').value = '';
+                companyConfig.hrdSignature = '';
+            }
+            
+            showMessage(`${type === 'logo' ? 'Logo' : 'Tanda tangan'} berhasil dihapus!`, 'success');
+        }
+
+        function previewTemplate() {
+            const template = document.getElementById('templateSelect').value;
+            const preview = document.getElementById('templatePreview');
+            
+            const templates = {
+                modern: `
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg">
+                        <h3 class="text-lg font-bold">Template Modern</h3>
+                        <p class="text-sm opacity-90">Desain modern dengan gradien dan elemen visual yang menarik</p>
+                    </div>
+                `,
+                classic: `
+                    <div class="bg-white border-2 border-gray-800 p-4 rounded">
+                        <h3 class="text-lg font-bold text-gray-800">Template Classic</h3>
+                        <p class="text-sm text-gray-600">Desain klasik dengan border tegas dan tipografi formal</p>
+                    </div>
+                `,
+                minimal: `
+                    <div class="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500">
+                        <h3 class="text-lg font-semibold text-gray-800">Template Minimal</h3>
+                        <p class="text-sm text-gray-600">Desain minimalis dengan fokus pada konten</p>
+                    </div>
+                `
+            };
+            
+            preview.innerHTML = templates[template] || templates.modern;
+        }
+
+        function applyTemplate(template) {
+            const body = document.body;
+            
+            // Remove existing template classes
+            body.classList.remove('template-modern', 'template-classic', 'template-minimal');
+            
+            // Add new template class
+            body.classList.add(`template-${template}`);
+            
+            // Apply template-specific styles
+            if (template === 'classic') {
+                document.documentElement.style.setProperty('--border-radius', '4px');
+                document.documentElement.style.setProperty('--shadow', '0 2px 4px rgba(0,0,0,0.1)');
+            } else if (template === 'minimal') {
+                document.documentElement.style.setProperty('--border-radius', '8px');
+                document.documentElement.style.setProperty('--shadow', '0 1px 3px rgba(0,0,0,0.1)');
+            } else { // modern
+                document.documentElement.style.setProperty('--border-radius', '12px');
+                document.documentElement.style.setProperty('--shadow', '0 4px 6px rgba(0,0,0,0.1)');
+            }
+        }
+
+        function saveCompanySettings() {
+            // Get form values
+            companyConfig.companyName = document.getElementById('companyNameInput').value.trim();
+            companyConfig.address = document.getElementById('companyAddressInput').value.trim();
+            companyConfig.phone = document.getElementById('companyPhoneInput').value.trim();
+            companyConfig.email = document.getElementById('companyEmailInput').value.trim();
+            companyConfig.website = document.getElementById('companyWebsiteInput').value.trim();
+            companyConfig.directorName = document.getElementById('directorNameInput').value.trim();
+            companyConfig.hrdName = document.getElementById('hrdNameInput').value.trim();
+            companyConfig.template = document.getElementById('templateSelect').value;
+            companyConfig.primaryColor = document.getElementById('primaryColorText').value;
+            companyConfig.secondaryColor = document.getElementById('secondaryColorText').value;
+            companyConfig.lastUpdated = new Date().toISOString();
+            
+            // Validate required fields
+            if (!companyConfig.companyName) {
+                showMessage('Nama perusahaan wajib diisi!', 'error');
+                return;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('companyConfig', JSON.stringify(companyConfig));
+            
+            // Apply changes immediately
+            applyCompanyBranding();
+            
+            addActivityLog('[ADMIN] Pengaturan perusahaan berhasil disimpan');
+            showMessage('💾 Pengaturan perusahaan berhasil disimpan dan diterapkan!', 'success');
+        }
+
+        function resetCompanySettings() {
+            if (confirm('Apakah Anda yakin ingin reset semua pengaturan perusahaan ke default?')) {
+                // Reset to default values
+                companyConfig = {
+                    companyName: 'PT. CONTOH PERUSAHAAN',
+                    address: 'Jl. Contoh No. 123, Jakarta',
+                    phone: '+62 21 1234567',
+                    email: 'info@perusahaan.com',
+                    website: 'www.perusahaan.com',
+                    logo: '',
+                    directorSignature: '',
+                    hrdSignature: '',
+                    directorName: 'Nama Direktur',
+                    hrdName: 'Nama HRD',
+                    template: 'modern',
+                    primaryColor: '#3B82F6',
+                    secondaryColor: '#10B981',
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                localStorage.setItem('companyConfig', JSON.stringify(companyConfig));
+                loadCompanySettings();
+                applyCompanyBranding();
+                
+                addActivityLog('[ADMIN] Pengaturan perusahaan direset ke default');
+                showMessage('🔄 Pengaturan perusahaan berhasil direset!', 'success');
+            }
+        }
+
+        function logoutAndClose() {
+            if (isAdminActive) {
+                if (confirm('Admin sedang aktif. Apakah Anda yakin ingin keluar? Admin akan tetap berjalan di background.')) {
+                    window.close();
+                }
+            } else {
+                window.close();
+            }
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98a254ca97c2445e',t:'MTc1OTcyNDA1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
